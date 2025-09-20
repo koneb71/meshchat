@@ -70,3 +70,8 @@ Summary in `SECURITY.md`. Keys are stored using flutter_secure_storage. Private 
 - Re‑key announcement security hardening (signature + replay protection)
 - Background delivery receipts batching; richer diagnostics (RSSI/hops per link)
 - Identity export/import UI; Battery Mode (Normal/Aggressive)
+
+## License
+
+This project is licensed under the GNU General Public License v2.0 (GPL‑2.0).
+See the `LICENSE` file for details.
