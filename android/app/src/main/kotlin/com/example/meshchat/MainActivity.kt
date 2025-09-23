@@ -21,6 +21,7 @@ class MainActivity : FlutterActivity() {
     private var dataCharacteristic: BluetoothGattCharacteristic? = null
     private var controlCharacteristic: BluetoothGattCharacteristic? = null
     private var eventSink: EventChannel.EventSink? = null
+    private val connectedDevices: MutableSet<BluetoothDevice> = HashSet()
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -50,6 +51,19 @@ class MainActivity : FlutterActivity() {
                             result.error("start_failed", e.message, null)
                         }
                     }
+                    "capabilities" -> {
+                        val caps = capabilities()
+                        result.success(caps)
+                    }
+                    "notify" -> {
+                        val bytes = call.argument<ByteArray>("data")
+                        try {
+                            if (bytes != null) notifyClients(bytes)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("notify_failed", e.message, null)
+                        }
+                    }
                     "stopServer" -> {
                         stopGattServer()
                         result.success(true)
@@ -57,6 +71,24 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    private fun capabilities(): Map<String, Any?> {
+        val ctx: Context = applicationContext
+        val bm = ctx.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        val ba = bm.adapter
+        val hasBle = ba != null
+        var advSupported = false
+        if (hasBle) {
+            try {
+                advSupported = ba!!.isMultipleAdvertisementSupported && ba.bluetoothLeAdvertiser != null
+            } catch (_: Exception) { }
+        }
+        return mapOf(
+            "hasBle" to hasBle,
+            "advertiseSupported" to advSupported,
+            "adapterEnabled" to (ba?.isEnabled ?: false)
+        )
     }
 
     private fun startGattServer(serviceUuid: UUID, dataUuid: UUID, controlUuid: UUID) {
@@ -70,6 +102,11 @@ class MainActivity : FlutterActivity() {
         gattServer = bluetoothManager?.openGattServer(ctx, object : BluetoothGattServerCallback() {
             override fun onConnectionStateChange(device: BluetoothDevice, status: Int, newState: Int) {
                 super.onConnectionStateChange(device, status, newState)
+                if (newState == BluetoothProfile.STATE_CONNECTED) {
+                    connectedDevices.add(device)
+                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                    connectedDevices.remove(device)
+                }
             }
 
             override fun onCharacteristicWriteRequest(
@@ -125,5 +162,13 @@ class MainActivity : FlutterActivity() {
     private fun stopGattServer() {
         try { gattServer?.close() } catch (_: Exception) {}
         gattServer = null
+    }
+
+    private fun notifyClients(bytes: ByteArray) {
+        val c = controlCharacteristic ?: return
+        c.value = bytes
+        for (d in connectedDevices) {
+            try { gattServer?.notifyCharacteristicChanged(d, c, false) } catch (_: Exception) {}
+        }
     }
 }

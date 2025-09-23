@@ -5,6 +5,7 @@ import '../core/utils.dart';
 import 'packet.dart';
 import 'codec.dart';
 import 'link_service.dart';
+import 'gatt_server.dart';
 
 abstract class BleLink {
   Future<void> send(MeshPacket packet);
@@ -50,6 +51,10 @@ class LinkManager {
         await l.send(pkt);
       }
     }
+    // Also emit over local GATT server control characteristic as a relay for connected centrals
+    try {
+      await MeshGattServer().sendControl(frame);
+    } catch (_) {}
   }
 
   Future<void> relay(MeshPacket pkt) async {
@@ -92,9 +97,9 @@ class LinkManager {
       if (pkt.type == 3) {
         final MeshPacket ack = buildAckFor(pkt);
         await broadcast(ack);
-      } else if (pkt.type == 4) {
+      }
+      if (pkt.type == 4) {
         onAck?.call(pkt);
-        return;
       }
       // Relay if TTL permits
       await relay(pkt);

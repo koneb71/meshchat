@@ -5,6 +5,7 @@ import '../mesh/advertiser.dart';
 import '../mesh/scanner.dart';
 import '../mesh/link_manager.dart';
 import '../mesh/link_service.dart';
+import '../mesh/link_info.dart';
 import '../mesh/gatt_server.dart';
 import '../mesh/packet.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -41,7 +42,7 @@ final Provider<StreamController<MeshPacket>> messagesControllerProvider = Provid
     controller.add(pkt);
   };
   ref.read(linkManagerProvider).onAck = (MeshPacket ack) {
-    // no-op here; ChatPage can listen to stream if needed
+    controller.add(ack);
   };
   return controller;
 });
@@ -82,6 +83,16 @@ final StreamProvider<List<BluetoothDevice>> nearbyPeersProvider = StreamProvider
     }
     return devices;
   });
+});
+
+final StateProvider<int> lastScanCountProvider = StateProvider<int>((StateProviderRef<int> ref) => 0);
+
+final StreamProvider<int> scanCountStreamProvider = StreamProvider<int>((StreamProviderRef<int> ref) {
+  return FlutterBluePlus.scanResults.map((List<ScanResult> results) => results.length);
+});
+
+final StreamProvider<List<LinkInfo>> linksStreamProvider = StreamProvider<List<LinkInfo>>((StreamProviderRef<List<LinkInfo>> ref) {
+  return ref.read(linkServiceProvider).linksStream;
 });
 
 final Provider<ChannelControlService> channelControlProvider = Provider<ChannelControlService>((ProviderRef<ChannelControlService> ref) {

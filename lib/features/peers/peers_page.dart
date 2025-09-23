@@ -14,10 +14,55 @@ class PeersPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final bool verbose = ref.watch(verboseLogProvider);
     final peersAsync = ref.watch(nearbyPeersProvider);
+    final scanner = ref.read(scannerProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Diagnostics')),
       body: Column(
         children: <Widget>[
+          Consumer(builder: (BuildContext _, WidgetRef r, __) {
+            final scanCount = r.watch(scanCountStreamProvider).maybeWhen(data: (v) => v, orElse: () => 0);
+            return ListTile(
+              leading: const Icon(Icons.radar),
+              title: const Text('Scan results (raw)'),
+              subtitle: Text('$scanCount recent devices'),
+            );
+          }),
+          Consumer(builder: (BuildContext _, WidgetRef r, __) {
+            final links = r.watch(linksStreamProvider).maybeWhen(data: (v) => v, orElse: () => const <dynamic>[]);
+            return ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Active links'),
+              subtitle: Text(links.isEmpty ? 'None' : links.map((e) => '${e.id} (MTU ${e.mtu})').join('\n')),
+            );
+          }),
+          FutureBuilder<Map<dynamic, dynamic>>(
+            future: ref.read(gattServerProvider).capabilities(),
+            builder: (BuildContext _, AsyncSnapshot<Map<dynamic, dynamic>> snap) {
+              final Map<dynamic, dynamic>? c = snap.data;
+              return ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: const Text('BLE Capabilities'),
+                subtitle: Text(c == null
+                    ? 'Checking...'
+                    : 'Adapter: ${c['adapterEnabled']}  BLE: ${c['hasBle']}  Adv: ${c['advertiseSupported']}'),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(scanner.isRunning ? Icons.play_circle_fill : Icons.pause_circle_filled),
+            title: const Text('Scan state'),
+            subtitle: Text(scanner.isRunning ? 'Running' : 'Idle'),
+            trailing: TextButton(
+              onPressed: () async {
+                if (scanner.isRunning) {
+                  await scanner.stop();
+                } else {
+                  await scanner.start();
+                }
+              },
+              child: Text(scanner.isRunning ? 'Stop' : 'Start'),
+            ),
+          ),
           SwitchListTile(
             title: const Text('Verbose logging'),
             value: verbose,

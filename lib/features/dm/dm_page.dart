@@ -92,7 +92,12 @@ class _DmPageState extends ConsumerState<DmPage> {
     _text.clear();
     setState(() => _messages.add('Me: $msg'));
     final RatchetState? rs = ref.read(sessionsProvider.notifier).ratchetFor(widget.peerId);
-    if (rs == null) return;
+    if (rs == null) {
+      // Auto-request prekey and return; user can re-send after handshake completes
+      ref.read(sessionsProvider.notifier).addPeer(widget.peerId);
+      ref.read(sessionsProvider.notifier).requestPreKey(widget.peerId);
+      return;
+    }
     final (RatchetState next, SecretKey mk) = await DoubleRatchetService().nextSendingKey(rs);
     ref.read(sessionsProvider.notifier).updateRatchet(widget.peerId, next);
     final List<int> nonce12 = List<int>.filled(12, 0);

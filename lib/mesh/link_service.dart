@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 import 'gatt_service.dart';
+import 'link_info.dart';
 import 'link_manager.dart';
 import 'scanner.dart';
 
@@ -30,6 +31,9 @@ class LinkService {
   final int maxConcurrent;
   Timer? _maintainTimer;
   final Map<DeviceIdentifier, MeshGattClientLink> _active = <DeviceIdentifier, MeshGattClientLink>{};
+  final Set<DeviceIdentifier> _failed = <DeviceIdentifier>{};
+  final StreamController<List<LinkInfo>> _linksController = StreamController<List<LinkInfo>>.broadcast();
+  Stream<List<LinkInfo>> get linksStream => _linksController.stream;
 
   LinkService({required this.scanner, required this.linkManager, this.maxConcurrent = 3});
 
@@ -55,9 +59,10 @@ class LinkService {
     for (final BluetoothDevice d in scanner.candidates) {
       if (_active.length >= maxConcurrent) break;
       if (_active.containsKey(d.remoteId)) continue;
+      if (_failed.contains(d.remoteId)) continue;
       try {
         final MeshGattClientLink client = MeshGattClientLink(d);
-        await client.connect();
+        await client.connect(autoConnect: true);
         _active[d.remoteId] = client;
         // Register with LinkManager so broadcast uses this link
         final BleMeshLink ble = BleMeshLink(client);
@@ -69,7 +74,7 @@ class LinkService {
           });
         } catch (_) {}
       } catch (_) {
-        // ignore
+        _failed.add(d.remoteId);
       }
     }
     // Drop disconnected
@@ -82,7 +87,11 @@ class LinkService {
     for (final DeviceIdentifier id in toRemove) {
       final MeshGattClientLink? l = _active.remove(id);
       await l?.disconnect();
+      _failed.remove(id);
     }
+    // emit link info
+    final List<LinkInfo> infos = _active.values.map((MeshGattClientLink l) => LinkInfo(id: l.id.str, mtu: l.mtu)).toList();
+    _linksController.add(infos);
   }
 }
 

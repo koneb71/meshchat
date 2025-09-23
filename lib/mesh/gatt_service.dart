@@ -16,8 +16,11 @@ class MeshGattClientLink {
 
   MeshGattClientLink(this.device);
 
-  Future<void> connect() async {
-    await device.connect(autoConnect: false);
+  int get mtu => _mtu;
+  DeviceIdentifier get id => device.remoteId;
+
+  Future<void> connect({bool autoConnect = false}) async {
+    await device.connect(autoConnect: autoConnect);
     try {
       // Request a higher MTU where possible (Android). iOS ignores.
       await device.requestMtu(247);
@@ -38,12 +41,12 @@ class MeshGattClientLink {
         }
       }
     }
-    // Subscribe to data notifications if supported
+    // Subscribe to control notifications (peripheral will notify frames on control char)
     try {
-      final BluetoothCharacteristic? dc = _dataChar;
-      if (dc != null) {
-        await dc.setNotifyValue(true);
-        _dataSub = dc.lastValueStream.listen((List<int> v) {
+      final BluetoothCharacteristic? cc = _controlChar;
+      if (cc != null) {
+        await cc.setNotifyValue(true);
+        _dataSub = cc.lastValueStream.listen((List<int> v) {
           if (v.isNotEmpty) {
             _onData.add(Uint8List.fromList(v));
           }

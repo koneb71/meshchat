@@ -9,6 +9,7 @@ import '../mesh/permissions.dart';
 import 'dart:async';
 import 'dart:typed_data';
 import '../features/channels/channel_state.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class AppRouter {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -43,6 +44,8 @@ class _RootShellState extends ConsumerState<_RootShell> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       BlePermissions.ensureGranted();
+      // Prompt to disable battery optimization while app is in foreground
+      _maybeRequestBatteryExemption();
       // Start peripheral GATT server and hook inbound frames to LinkManager
       ref.read(gattServerProvider).start();
       ref.read(gattServerProvider).inboundFrames.listen((Uint8List bytes) {
@@ -78,6 +81,15 @@ class _RootShellState extends ConsumerState<_RootShell> {
         ],
       ),
     );
+  }
+
+  Future<void> _maybeRequestBatteryExemption() async {
+    try {
+      final bool ignoring = await Permission.ignoreBatteryOptimizations.isGranted;
+      if (!ignoring) {
+        await Permission.ignoreBatteryOptimizations.request();
+      }
+    } catch (_) {}
   }
 }
 

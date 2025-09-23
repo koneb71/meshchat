@@ -20,11 +20,20 @@ class MeshGattServer {
     });
   }
 
+  Future<Map<dynamic, dynamic>> capabilities() async {
+    final Map<dynamic, dynamic> caps = await _method.invokeMethod('capabilities');
+    return caps;
+  }
+
   Future<void> stop() async {
     await _method.invokeMethod('stopServer');
   }
 
   Stream<Uint8List> get inboundFrames => _inbound ?? const Stream<Uint8List>.empty();
+
+  Future<void> sendControl(Uint8List bytes) async {
+    await _method.invokeMethod('notify', <String, dynamic>{'data': bytes});
+  }
 }
 
 

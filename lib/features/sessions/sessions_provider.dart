@@ -46,10 +46,12 @@ class SessionsNotifier extends StateNotifier<List<SessionState>> {
     final RatchetState rs = await _dr.initialize(sharedSecret: r.sharedSecret, isInitiator: true, theirRatchetKey: r.ephPublicKey);
     _setRatchet(peerId, rs);
     // Send handshake over control channel with eph key
+    final SimplePublicKey ourIdXPub = await ourIdentityX25519.extractPublicKey();
     final Map<String, dynamic> msg = <String, dynamic>{
       'type': 'x3dh_init',
       'peer': peerId,
       'eph': base64Url.encode(r.ephPublicKey.bytes),
+      'idX': base64Url.encode(ourIdXPub.bytes),
     };
     await _sendControl(jsonEncode(msg));
   }
@@ -69,11 +71,12 @@ class SessionsNotifier extends StateNotifier<List<SessionState>> {
   Future<void> handleInitiate(Map<String, dynamic> m, SimpleKeyPair ourIdentityX25519, SimpleKeyPair spk, SimpleKeyPair? opk) async {
     final String peerId = m['peer'] as String;
     final SimplePublicKey theirEph = SimplePublicKey(base64Url.decode(m['eph'] as String), type: KeyPairType.x25519);
+    final SimplePublicKey theirIdX = SimplePublicKey(base64Url.decode(m['idX'] as String), type: KeyPairType.x25519);
     final SecretKey shared = await _x3dh.respond(
       ourIdentityX25519: ourIdentityX25519,
       ourSignedPreKey: spk,
       ourOneTimePreKey: opk,
-      theirIdentityX25519: await ourIdentityX25519.extractPublicKey(), // placeholder; normally from their prekey bundle
+      theirIdentityX25519: theirIdX,
       theirEphKey: theirEph,
     );
     final RatchetState rs = await _dr.initialize(sharedSecret: shared, isInitiator: false, theirRatchetKey: theirEph);

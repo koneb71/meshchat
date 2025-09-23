@@ -11,6 +11,7 @@ class MeshScanner {
   bool _running = false;
 
   final List<BluetoothDevice> candidates = <BluetoothDevice>[];
+  bool get isRunning => _running;
 
   Future<void> start() async {
     if (_running) return;
@@ -40,7 +41,10 @@ class MeshScanner {
           }
         }
       });
-      await FlutterBluePlus.startScan(timeout: scanDuration);
+      await FlutterBluePlus.startScan(
+        timeout: scanDuration,
+        androidScanMode: AndroidScanMode.lowLatency,
+      );
       await Future<void>.delayed(scanDuration);
       await FlutterBluePlus.stopScan();
       await _sub?.cancel();
