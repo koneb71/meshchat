@@ -70,9 +70,10 @@ class ChannelsNotifier extends StateNotifier<List<Channel>> {
       'v': 1,
       'name': ch.name,
       'enc': ch.encrypted,
-      // TODO: include encrypted sender key when sessions are available
-      'kc': ch.senderKey,
     };
+    if (ch.encrypted && ch.senderKey != null && ch.senderKey!.isNotEmpty) {
+      bundle['kc'] = ch.senderKey;
+    }
     return jsonEncode(bundle);
   }
 
@@ -115,6 +116,11 @@ class ChannelsNotifier extends StateNotifier<List<Channel>> {
       final bool enc = (b['enc'] as bool?) ?? false;
       if (state.any((Channel c) => c.name == name)) return true;
       createChannel(name: name, encrypted: enc);
+      // If sender key was included, apply it
+      final String? kc = b['kc'] as String?;
+      if (enc && kc != null && kc.isNotEmpty) {
+        updateChannelKey(name, kc, 0);
+      }
       return true;
     } catch (_) {
       return false;

@@ -8,6 +8,7 @@ import 'invite_qr.dart';
 import '../dm/dm_page.dart';
 import '../../data/identity_provider.dart' as idp;
 import '../invite/inbox_page.dart';
+import '../invite/invite_service.dart';
 import 'channel_details_page.dart';
 
 class ChannelListPage extends ConsumerWidget {
@@ -251,6 +252,14 @@ class ChannelListPage extends ConsumerWidget {
                     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ChannelDetailsPage(channelName: ch.name)));
                   } else if (sel == 'pin') {
                     ref.read(channelsProvider.notifier).togglePinned(ch.name);
+                  } else if (sel == 'invite') {
+                    final String bundle = ref.read(channelsProvider.notifier).generateInviteBundle(ch);
+                    await ref.read(inviteServiceProvider).sendInvite(bundle);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invite broadcasted')));
+                  } else if (sel == 'invite_code') {
+                    final String code = ref.read(channelsProvider.notifier).generateInviteCode(ch);
+                    await ref.read(inviteServiceProvider).sendInvite(code);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invite code broadcasted')));
                   }
                 },
                 itemBuilder: (_) => <PopupMenuEntry<String>>[
@@ -260,6 +269,8 @@ class ChannelListPage extends ConsumerWidget {
                   const PopupMenuItem<String>(value: 'rotate', child: Text('Rotate Sender Key Now')),
                   const PopupMenuItem<String>(value: 'members', child: Text('View Members')),
                   const PopupMenuItem<String>(value: 'details', child: Text('Channel Details')),
+                  const PopupMenuItem<String>(value: 'invite', child: Text('Broadcast Invite')),
+                  const PopupMenuItem<String>(value: 'invite_code', child: Text('Broadcast Invite Code')),
                   PopupMenuItem<String>(value: 'pin', child: Text(ch.pinned ? 'Unpin' : 'Pin')),
                 ],
               ),

@@ -9,6 +9,7 @@ import '../mesh/permissions.dart';
 import 'dart:async';
 import 'dart:typed_data';
 import '../features/channels/channel_state.dart';
+import '../features/sessions/sessions_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class AppRouter {
@@ -63,6 +64,8 @@ class _RootShellState extends ConsumerState<_RootShell> {
       });
       ref.read(advertiserProvider).start();
       ref.read(linkServiceProvider).start();
+      // Ensure DM control listener is active even if DM page is not open
+      ref.read(sessionsProvider);
       ref.read(channelsProvider.notifier).rotateDueKeys();
       _rekeyTimer = Timer.periodic(const Duration(hours: 6), (_) {
         ref.read(channelsProvider.notifier).rotateDueKeys();

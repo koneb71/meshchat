@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'dart:convert';
 import '../dm/dm_page.dart';
 import '../channels/channel_state.dart';
 import '../invite/invite_service.dart';
@@ -124,7 +123,7 @@ class PeersPage extends ConsumerWidget {
                           final private = channels.where((c) => c.encrypted).toList();
                           if (private.isEmpty) return;
                           final code = ref.read(channelsProvider.notifier).generateInviteCode(private.first);
-                          await ref.read(inviteServiceProvider).sendInvite(jsonEncode(<String, String>{'code': code}));
+                          await ref.read(inviteServiceProvider).sendInvite(code);
                         }
                       },
                       itemBuilder: (_) => const <PopupMenuEntry<String>>[
