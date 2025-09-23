@@ -55,7 +55,7 @@ class _DmPageState extends ConsumerState<DmPage> {
                       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
-                        color: mine ? Theme.of(context).colorScheme.primaryContainer : Theme.of(context).colorScheme.surfaceVariant,
+                        color: mine ? Theme.of(context).colorScheme.primaryContainer : Theme.of(context).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Text(text, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),

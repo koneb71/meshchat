@@ -31,7 +31,7 @@ ThemeData buildTheme() {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: scheme.surfaceVariant.withOpacity(0.6),
+      fillColor: scheme.surfaceContainerHighest.withOpacity(0.6),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: scheme.outlineVariant),
@@ -71,7 +71,7 @@ ThemeData buildTheme() {
       backgroundColor: scheme.surface,
       elevation: 0,
       indicatorColor: scheme.primaryContainer,
-      labelTextStyle: WidgetStateProperty.all(TextStyle(
+      labelTextStyle: WidgetStateProperty.all(const TextStyle(
         fontWeight: FontWeight.w600,
       )),
     ),
@@ -101,7 +101,7 @@ ThemeData buildDarkTheme() {
       textColor: scheme.onSurface,
     ),
     inputDecorationTheme: base.inputDecorationTheme.copyWith(
-      fillColor: scheme.surfaceVariant.withOpacity(0.3),
+      fillColor: scheme.surfaceContainerHighest.withOpacity(0.3),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: scheme.outlineVariant),
