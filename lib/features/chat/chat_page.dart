@@ -183,13 +183,25 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     _sub = ref.read(messagesStreamProvider).listen((event) async {
       if (event.type == 3 && event.channelId64 == _hash64(widget.channelName)) {
         final channels = ref.read(channelsProvider);
-        final bool isEncrypted = channels.firstWhere((c) => c.name == widget.channelName, orElse: () => channels.first).encrypted;
+        final bool isEncrypted = channels.any((c) => c.name == widget.channelName && c.encrypted);
         MeshPacket deliver = event;
         if (isEncrypted && event.payload != null) {
           final ChannelCryptoService ccs = ChannelCryptoService(ref);
           final Uint8List? pt = await ccs.openForChannel(widget.channelName, event, event.payload!);
-          if (pt == null) return;
-          deliver = MeshPacket(
+          if (pt == null) {
+            // Show placeholder if cannot decrypt
+            deliver = MeshPacket(
+              version: event.version,
+              type: event.type,
+              ttl: event.ttl,
+              hop: event.hop,
+              channelId64: event.channelId64,
+              msgId: event.msgId,
+              headerAd: event.headerAd,
+              payload: Uint8List.fromList('[Encrypted message]'.codeUnits),
+            );
+          } else {
+            deliver = MeshPacket(
             version: event.version,
             type: event.type,
             ttl: event.ttl,
@@ -199,11 +211,13 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             headerAd: event.headerAd,
             payload: pt,
           );
+          }
         }
         ref.read(messagesProvider(widget.channelName).notifier).addIncoming(deliver);
       } else if (event.type == 4 && event.channelId64 == _hash64(widget.channelName)) {
         // ACK observed for this channel; annotate bubble by msgId
-        ref.read(messagesProvider(widget.channelName).notifier).markDelivered(event.msgId.toString(), hops: event.hop);
+        final String idHex = event.msgId.map((int b) => b.toRadixString(16).padLeft(2, '0')).join();
+        ref.read(messagesProvider(widget.channelName).notifier).markDelivered(idHex, hops: event.hop);
       }
     });
   }

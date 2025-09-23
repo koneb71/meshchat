@@ -21,7 +21,7 @@ class BleMeshLink implements BleLink {
   }
 
   Future<void> sendFrame(List<int> frame) async {
-    await _client.sendData(frame as dynamic);
+    await _client.sendDataChunks(Uint8List.fromList(frame));
   }
 }
 

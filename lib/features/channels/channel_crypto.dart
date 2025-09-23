@@ -57,13 +57,15 @@ class ChannelCryptoService {
   }
 
   Uint8List _adFromHeader(MeshPacket pkt) {
-    return Uint8List.fromList(<int>[pkt.version, pkt.type, pkt.ttl, pkt.hop]);
-  }
-
-  (int, List<int>) _nonceFromCounter(int counter) {
-    final ByteData bd = ByteData(12);
-    bd.setUint64(4, counter);
-    return (counter, bd.buffer.asUint8List());
+    // Associated Data must be stable end-to-end.
+    // Use immutable fields: version, type, channelId64, msgId (exclude ttl/hop).
+    final ByteData bd = ByteData(1 + 1 + 8 + 12);
+    bd.setUint8(0, pkt.version);
+    bd.setUint8(1, pkt.type);
+    bd.setUint64(2, pkt.channelId64);
+    final Uint8List ad = bd.buffer.asUint8List();
+    ad.setAll(2 + 8, pkt.msgId);
+    return ad;
   }
 
   List<int> _nonceFromMsgId(Uint8List msgId) {
