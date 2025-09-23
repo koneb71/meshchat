@@ -11,6 +11,7 @@ Offline Bluetooth P2P mesh messenger with channels and end‑to‑end encryption
 - Persistence: channels, messages (per‑bubble delivery persisted), identity
 - Invites: QR, text invite code; preview name/type; sender key hash for side‑channel verification
 - Diagnostics: Nearby peers list, verbose logging toggle, re‑key prompts in chat
+ - Diagnostics: BLE Capabilities (Adapter/BLE/Advertise), Scan state control, Raw scan count, Active links with MTU
 
 ## Build
 
@@ -32,6 +33,7 @@ Android Manifest includes:
 - BLUETOOTH, BLUETOOTH_ADMIN (maxSdk 30)
 - BLUETOOTH_SCAN, BLUETOOTH_CONNECT, BLUETOOTH_ADVERTISE
 - FOREGROUND_SERVICE, POST_NOTIFICATIONS
+ - REQUEST_IGNORE_BATTERY_OPTIMIZATIONS (prompt shown only while app is in use)
 - Foreground service `MeshForegroundService` (connectedDevice|dataSync)
 
 iOS `Info.plist`:
@@ -53,7 +55,8 @@ iOS `Info.plist`:
 - Tooltip on bubbles shows sent time. Delivery receipts are shown per bubble (via ACK hop count).
 
 4) Peers
-- See nearby devices (advertising Mesh service). Open a DM or send a channel invite.
+- See nearby devices (Mesh service or name). Open a DM or send a channel invite.
+- Use Diagnostics tiles to verify: Adapter=true, BLE=true, Adv=true (at least one device), Scan state=Running, Raw scan>0.
 
 5) Re‑key & Members
 - Private channels auto‑rotate Sender Keys periodically (and on demand). A re‑key message is broadcast to peers.
@@ -61,6 +64,10 @@ iOS `Info.plist`:
 
 ## Testing (multi‑phone)
 See `TESTING.md` for field tests (corridor, multi‑room, outdoor) and battery notes.
+
+Vendor notes:
+- Xiaomi/MIUI: Allow Autostart; Battery saver → No restrictions for MeshChat; grant Nearby Devices and Location; ensure Location is ON.
+- Tecno/HiOS: Allow background activity; No battery restrictions; grant Nearby Devices and Location; ensure Location is ON.
 
 ## Security
 Summary in `SECURITY.md`. Keys are stored using flutter_secure_storage. Private channels use Sender Keys (ChaCha20‑Poly1305). 1:1 sessions use X3DH to derive a shared secret and Double Ratchet for forward secrecy.
