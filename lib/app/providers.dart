@@ -5,6 +5,7 @@ import '../mesh/advertiser.dart';
 import '../mesh/scanner.dart';
 import '../mesh/link_manager.dart';
 import '../mesh/link_service.dart';
+import '../mesh/gatt_server.dart';
 import '../mesh/packet.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../mesh/constants.dart';
@@ -26,6 +27,10 @@ final Provider<LinkManager> linkManagerProvider = Provider<LinkManager>((Provide
 
 final Provider<LinkService> linkServiceProvider = Provider<LinkService>((ProviderRef<LinkService> ref) {
   return LinkService(scanner: ref.read(scannerProvider), linkManager: ref.read(linkManagerProvider));
+});
+
+final Provider<MeshGattServer> gattServerProvider = Provider<MeshGattServer>((ProviderRef<MeshGattServer> ref) {
+  return MeshGattServer();
 });
 
 final Provider<StreamController<MeshPacket>> messagesControllerProvider = Provider<StreamController<MeshPacket>>((ProviderRef<StreamController<MeshPacket>> ref) {
@@ -66,7 +71,10 @@ final StreamProvider<List<BluetoothDevice>> nearbyPeersProvider = StreamProvider
   return base.map((List<ScanResult> results) {
     final List<BluetoothDevice> devices = <BluetoothDevice>[];
     for (final ScanResult r in results) {
-      if (r.advertisementData.serviceUuids.contains(Guid(MeshUuids.service))) {
+      final bool matchesService = r.advertisementData.serviceUuids.contains(Guid(MeshUuids.service));
+      final String advName = r.advertisementData.advName;
+      final bool matchesName = advName.isNotEmpty && advName.toLowerCase().contains('mesh');
+      if (matchesService || matchesName) {
         if (!devices.any((BluetoothDevice d) => d.remoteId == r.device.remoteId)) {
           devices.add(r.device);
         }

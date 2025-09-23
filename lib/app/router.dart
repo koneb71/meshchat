@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'providers.dart';
 import '../mesh/permissions.dart';
 import 'dart:async';
+import 'dart:typed_data';
 import '../features/channels/channel_state.dart';
 
 class AppRouter {
@@ -42,6 +43,11 @@ class _RootShellState extends ConsumerState<_RootShell> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       BlePermissions.ensureGranted();
+      // Start peripheral GATT server and hook inbound frames to LinkManager
+      ref.read(gattServerProvider).start();
+      ref.read(gattServerProvider).inboundFrames.listen((Uint8List bytes) {
+        ref.read(linkManagerProvider).onFrameReceived(bytes);
+      });
       ref.read(advertiserProvider).start();
       ref.read(linkServiceProvider).start();
       ref.read(channelsProvider.notifier).rotateDueKeys();

@@ -11,6 +11,7 @@ class MeshAdvertiser {
     _running = true;
     final AdvertiseData advertiseData = AdvertiseData(
       includeDeviceName: true,
+      localName: 'MeshChat',
       serviceUuid: MeshUuids.service,
     );
     final AdvertiseSettings settings = AdvertiseSettings(

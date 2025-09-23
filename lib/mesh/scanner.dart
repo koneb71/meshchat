@@ -30,7 +30,10 @@ class MeshScanner {
       candidates.clear();
       _sub = FlutterBluePlus.scanResults.listen((List<ScanResult> results) {
         for (final ScanResult r in results) {
-          if (r.advertisementData.serviceUuids.contains(Guid(MeshUuids.service))) {
+          final bool matchesService = r.advertisementData.serviceUuids.contains(Guid(MeshUuids.service));
+          final String advName = r.advertisementData.advName;
+          final bool matchesName = advName.isNotEmpty && advName.toLowerCase().contains('mesh');
+          if (matchesService || matchesName) {
             if (!candidates.any((BluetoothDevice d) => d.remoteId == r.device.remoteId)) {
               candidates.add(r.device);
             }

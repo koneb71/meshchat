@@ -27,6 +27,11 @@ class ChannelsNotifier extends StateNotifier<List<Channel>> {
     );
     state = <Channel>[...state, ch];
     _save();
+    if (encrypted) {
+      // Generate sender key asynchronously so UI can show hash immediately after creation
+      // ignore: discarded_futures
+      _ensureSenderKeyAsync(name);
+    }
   }
 
   void joinPublicByName(String name) {
@@ -70,7 +75,7 @@ class ChannelsNotifier extends StateNotifier<List<Channel>> {
 
   Future<String?> senderKeyHash(Channel ch) async {
     if (ch.senderKey == null || ch.senderKey!.isEmpty) return null;
-    final List<int> kc = base64Decode(ch.senderKey!);
+    final List<int> kc = base64Url.decode(ch.senderKey!);
     final Hash h = await Sha256().hash(kc);
     final String hex = h.bytes.map((int b) => b.toRadixString(16).padLeft(2, '0')).join().toUpperCase();
     final String short = hex.substring(0, 20);
@@ -175,10 +180,33 @@ class ChannelsNotifier extends StateNotifier<List<Channel>> {
     }
   }
 
+  Future<void> _ensureSenderKeyAsync(String name) async {
+    try {
+      final List<Channel> list = state;
+      Channel? ch;
+      for (final Channel c in list) {
+        if (c.name == name) { ch = c; break; }
+      }
+      if (ch == null || !ch.encrypted) return;
+      if (ch.senderKey != null && ch.senderKey!.isNotEmpty) return;
+      final List<int> newKey = await Chacha20.poly1305Aead().newSecretKey().then((SecretKey k) => k.extractBytes());
+      updateChannelKey(name, base64Url.encode(newKey), 0);
+    } catch (_) {}
+  }
+
   Future<void> _load() async {
     final List<dynamic> list = await _store.readJsonList(ChannelsNotifier._file);
     final List<Channel> loaded = list.map((dynamic e) => Channel.fromJson(e as Map<String, dynamic>)).toList();
-    if (loaded.isNotEmpty) state = loaded;
+    if (loaded.isNotEmpty) {
+      state = loaded;
+      // Ensure any encrypted channels without a key get initialized
+      for (final Channel c in state) {
+        if (c.encrypted && (c.senderKey == null || c.senderKey!.isEmpty)) {
+          // ignore: discarded_futures
+          _ensureSenderKeyAsync(c.name);
+        }
+      }
+    }
   }
 
   Future<void> _save() async {
