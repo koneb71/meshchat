@@ -7,11 +7,13 @@ Offline Bluetooth P2P mesh messenger with channels and end‑to‑end encryption
 - Private channels (Sender Keys, AEAD ChaCha20‑Poly1305)
 - 1:1 Direct Messages with X3DH bootstrap (control channel) + Double Ratchet (send/recv chains)
 - Store‑and‑forward mesh over BLE, TTL + hop relay + de‑dup
+- Transports: Android (BLE + Nearby), iOS (BLE + MultipeerConnectivity)
 - Background: Android ForegroundService; iOS background modes
 - Persistence: channels, messages (per‑bubble delivery persisted), identity
-- Invites: QR, text invite code; preview name/type; sender key hash for side‑channel verification
-- Diagnostics: Nearby peers list, verbose logging toggle, re‑key prompts in chat
- - Diagnostics: BLE Capabilities (Adapter/BLE/Advertise), Scan state control, Raw scan count, Active links with MTU
+- Invites: QR, text invite code; preview name/type; sender key hash; Invite Inbox (accept/decline)
+- Channels: member management (add/remove, roles), signed re‑key with verification, pinned channels
+- Chat UX: long‑press Copy/Delete, swipe‑to‑delete (own messages), delivery receipts per bubble
+- Diagnostics: BLE Capabilities, Scan control, Raw scan count, RSSI per peer, Active links with MTU, Throughput/Loss (kbps, counts, acks, duplicates), transport chip in Chat
 
 ## Build
 
@@ -27,13 +29,13 @@ iOS:
 open ios/Runner.xcworkspace # build from Xcode
 ```
 
-## Permissions
+## Permissions & Power
 
 Android Manifest includes:
 - BLUETOOTH, BLUETOOTH_ADMIN (maxSdk 30)
 - BLUETOOTH_SCAN, BLUETOOTH_CONNECT, BLUETOOTH_ADVERTISE
 - FOREGROUND_SERVICE, POST_NOTIFICATIONS
- - REQUEST_IGNORE_BATTERY_OPTIMIZATIONS (prompt shown only while app is in use)
+- REQUEST_IGNORE_BATTERY_OPTIMIZATIONS (prompt shown only while app is in use)
 - Foreground service `MeshForegroundService` (connectedDevice|dataSync)
 
 iOS `Info.plist`:
@@ -44,6 +46,7 @@ iOS `Info.plist`:
 
 1) Onboard
 - Set your Display Name; see Safety Number (text + QR). You can edit later in Settings.
+- Run Quick Setup to grant Bluetooth/Location and disable battery optimization (Android).
 
 2) Channels
 - Create a channel (toggle Private for encrypted)
@@ -56,14 +59,16 @@ iOS `Info.plist`:
 
 4) Peers
 - See nearby devices (Mesh service or name). Open a DM or send a channel invite.
-- Use Diagnostics tiles to verify: Adapter=true, BLE=true, Adv=true (at least one device), Scan state=Running, Raw scan>0.
+- Manual Connect button can force a BLE link.
+- Use Diagnostics tiles to verify: Adapter=true, BLE=true, Adv=true (>=1 device), Scan=Running, Raw scan>0.
 
 5) Re‑key & Members
-- Private channels auto‑rotate Sender Keys periodically (and on demand). A re‑key message is broadcast to peers.
-- Chat shows a banner prompting verification after a re‑key. You can view a read‑only Members sheet (you + nearby peers) from the channel menu.
+- Private channels auto‑rotate Sender Keys periodically (and on demand). Rekey messages are signed and verified.
+- Channel Details lets you add/remove members and set roles; updates are signed and propagated.
+- Chat shows a banner prompting verification after a re‑key.
 
 ## Testing (multi‑phone)
-See `TESTING.md` for field tests (corridor, multi‑room, outdoor) and battery notes.
+See `TESTING.md` for field tests (corridor, multi‑room, outdoor) and battery notes. Use Throughput/Loss and the transport chip to validate delivery.
 
 Vendor notes:
 - Xiaomi/MIUI: Allow Autostart; Battery saver → No restrictions for MeshChat; grant Nearby Devices and Location; ensure Location is ON.
