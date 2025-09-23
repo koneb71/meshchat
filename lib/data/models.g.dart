@@ -37,6 +37,11 @@ _$ChannelImpl _$$ChannelImplFromJson(Map<String, dynamic> json) =>
       rotatedAt: json['rotatedAt'] == null
           ? null
           : DateTime.parse(json['rotatedAt'] as String),
+      members: (json['members'] as List<dynamic>?)
+              ?.map((e) => Member.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <Member>[],
+      pinned: json['pinned'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$$ChannelImplToJson(_$ChannelImpl instance) =>
@@ -48,6 +53,23 @@ Map<String, dynamic> _$$ChannelImplToJson(_$ChannelImpl instance) =>
       'messageCounter': instance.messageCounter,
       'createdAt': instance.createdAt.toIso8601String(),
       'rotatedAt': instance.rotatedAt?.toIso8601String(),
+      'members': instance.members,
+      'pinned': instance.pinned,
+    };
+
+_$MemberImpl _$$MemberImplFromJson(Map<String, dynamic> json) => _$MemberImpl(
+      userId: json['userId'] as String,
+      displayName: json['displayName'] as String,
+      role: json['role'] as String? ?? 'member',
+      addedAt: DateTime.parse(json['addedAt'] as String),
+    );
+
+Map<String, dynamic> _$$MemberImplToJson(_$MemberImpl instance) =>
+    <String, dynamic>{
+      'userId': instance.userId,
+      'displayName': instance.displayName,
+      'role': instance.role,
+      'addedAt': instance.addedAt.toIso8601String(),
     };
 
 _$MeshPacketModelImpl _$$MeshPacketModelImplFromJson(

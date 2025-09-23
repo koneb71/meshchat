@@ -273,6 +273,8 @@ mixin _$Channel {
   int get messageCounter => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime? get rotatedAt => throw _privateConstructorUsedError;
+  List<Member> get members => throw _privateConstructorUsedError;
+  bool get pinned => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -291,7 +293,9 @@ abstract class $ChannelCopyWith<$Res> {
       String? senderKey,
       int messageCounter,
       DateTime createdAt,
-      DateTime? rotatedAt});
+      DateTime? rotatedAt,
+      List<Member> members,
+      bool pinned});
 }
 
 /// @nodoc
@@ -314,6 +318,8 @@ class _$ChannelCopyWithImpl<$Res, $Val extends Channel>
     Object? messageCounter = null,
     Object? createdAt = null,
     Object? rotatedAt = freezed,
+    Object? members = null,
+    Object? pinned = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -344,6 +350,14 @@ class _$ChannelCopyWithImpl<$Res, $Val extends Channel>
           ? _value.rotatedAt
           : rotatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      members: null == members
+          ? _value.members
+          : members // ignore: cast_nullable_to_non_nullable
+              as List<Member>,
+      pinned: null == pinned
+          ? _value.pinned
+          : pinned // ignore: cast_nullable_to_non_nullable
+              as bool,
     ) as $Val);
   }
 }
@@ -362,7 +376,9 @@ abstract class _$$ChannelImplCopyWith<$Res> implements $ChannelCopyWith<$Res> {
       String? senderKey,
       int messageCounter,
       DateTime createdAt,
-      DateTime? rotatedAt});
+      DateTime? rotatedAt,
+      List<Member> members,
+      bool pinned});
 }
 
 /// @nodoc
@@ -383,6 +399,8 @@ class __$$ChannelImplCopyWithImpl<$Res>
     Object? messageCounter = null,
     Object? createdAt = null,
     Object? rotatedAt = freezed,
+    Object? members = null,
+    Object? pinned = null,
   }) {
     return _then(_$ChannelImpl(
       id: null == id
@@ -413,6 +431,14 @@ class __$$ChannelImplCopyWithImpl<$Res>
           ? _value.rotatedAt
           : rotatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      members: null == members
+          ? _value._members
+          : members // ignore: cast_nullable_to_non_nullable
+              as List<Member>,
+      pinned: null == pinned
+          ? _value.pinned
+          : pinned // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -427,7 +453,10 @@ class _$ChannelImpl implements _Channel {
       this.senderKey,
       this.messageCounter = 0,
       required this.createdAt,
-      this.rotatedAt});
+      this.rotatedAt,
+      final List<Member> members = const <Member>[],
+      this.pinned = false})
+      : _members = members;
 
   factory _$ChannelImpl.fromJson(Map<String, dynamic> json) =>
       _$$ChannelImplFromJson(json);
@@ -447,10 +476,22 @@ class _$ChannelImpl implements _Channel {
   final DateTime createdAt;
   @override
   final DateTime? rotatedAt;
+  final List<Member> _members;
+  @override
+  @JsonKey()
+  List<Member> get members {
+    if (_members is EqualUnmodifiableListView) return _members;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_members);
+  }
+
+  @override
+  @JsonKey()
+  final bool pinned;
 
   @override
   String toString() {
-    return 'Channel(id: $id, name: $name, encrypted: $encrypted, senderKey: $senderKey, messageCounter: $messageCounter, createdAt: $createdAt, rotatedAt: $rotatedAt)';
+    return 'Channel(id: $id, name: $name, encrypted: $encrypted, senderKey: $senderKey, messageCounter: $messageCounter, createdAt: $createdAt, rotatedAt: $rotatedAt, members: $members, pinned: $pinned)';
   }
 
   @override
@@ -469,13 +510,24 @@ class _$ChannelImpl implements _Channel {
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.rotatedAt, rotatedAt) ||
-                other.rotatedAt == rotatedAt));
+                other.rotatedAt == rotatedAt) &&
+            const DeepCollectionEquality().equals(other._members, _members) &&
+            (identical(other.pinned, pinned) || other.pinned == pinned));
   }
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(runtimeType, id, name, encrypted, senderKey,
-      messageCounter, createdAt, rotatedAt);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      encrypted,
+      senderKey,
+      messageCounter,
+      createdAt,
+      rotatedAt,
+      const DeepCollectionEquality().hash(_members),
+      pinned);
 
   @JsonKey(ignore: true)
   @override
@@ -499,7 +551,9 @@ abstract class _Channel implements Channel {
       final String? senderKey,
       final int messageCounter,
       required final DateTime createdAt,
-      final DateTime? rotatedAt}) = _$ChannelImpl;
+      final DateTime? rotatedAt,
+      final List<Member> members,
+      final bool pinned}) = _$ChannelImpl;
 
   factory _Channel.fromJson(Map<String, dynamic> json) = _$ChannelImpl.fromJson;
 
@@ -518,8 +572,203 @@ abstract class _Channel implements Channel {
   @override
   DateTime? get rotatedAt;
   @override
+  List<Member> get members;
+  @override
+  bool get pinned;
+  @override
   @JsonKey(ignore: true)
   _$$ChannelImplCopyWith<_$ChannelImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+Member _$MemberFromJson(Map<String, dynamic> json) {
+  return _Member.fromJson(json);
+}
+
+/// @nodoc
+mixin _$Member {
+  String get userId => throw _privateConstructorUsedError;
+  String get displayName => throw _privateConstructorUsedError;
+  String get role => throw _privateConstructorUsedError;
+  DateTime get addedAt => throw _privateConstructorUsedError;
+
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  @JsonKey(ignore: true)
+  $MemberCopyWith<Member> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $MemberCopyWith<$Res> {
+  factory $MemberCopyWith(Member value, $Res Function(Member) then) =
+      _$MemberCopyWithImpl<$Res, Member>;
+  @useResult
+  $Res call({String userId, String displayName, String role, DateTime addedAt});
+}
+
+/// @nodoc
+class _$MemberCopyWithImpl<$Res, $Val extends Member>
+    implements $MemberCopyWith<$Res> {
+  _$MemberCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? userId = null,
+    Object? displayName = null,
+    Object? role = null,
+    Object? addedAt = null,
+  }) {
+    return _then(_value.copyWith(
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      displayName: null == displayName
+          ? _value.displayName
+          : displayName // ignore: cast_nullable_to_non_nullable
+              as String,
+      role: null == role
+          ? _value.role
+          : role // ignore: cast_nullable_to_non_nullable
+              as String,
+      addedAt: null == addedAt
+          ? _value.addedAt
+          : addedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$MemberImplCopyWith<$Res> implements $MemberCopyWith<$Res> {
+  factory _$$MemberImplCopyWith(
+          _$MemberImpl value, $Res Function(_$MemberImpl) then) =
+      __$$MemberImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String userId, String displayName, String role, DateTime addedAt});
+}
+
+/// @nodoc
+class __$$MemberImplCopyWithImpl<$Res>
+    extends _$MemberCopyWithImpl<$Res, _$MemberImpl>
+    implements _$$MemberImplCopyWith<$Res> {
+  __$$MemberImplCopyWithImpl(
+      _$MemberImpl _value, $Res Function(_$MemberImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? userId = null,
+    Object? displayName = null,
+    Object? role = null,
+    Object? addedAt = null,
+  }) {
+    return _then(_$MemberImpl(
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      displayName: null == displayName
+          ? _value.displayName
+          : displayName // ignore: cast_nullable_to_non_nullable
+              as String,
+      role: null == role
+          ? _value.role
+          : role // ignore: cast_nullable_to_non_nullable
+              as String,
+      addedAt: null == addedAt
+          ? _value.addedAt
+          : addedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$MemberImpl implements _Member {
+  const _$MemberImpl(
+      {required this.userId,
+      required this.displayName,
+      this.role = 'member',
+      required this.addedAt});
+
+  factory _$MemberImpl.fromJson(Map<String, dynamic> json) =>
+      _$$MemberImplFromJson(json);
+
+  @override
+  final String userId;
+  @override
+  final String displayName;
+  @override
+  @JsonKey()
+  final String role;
+  @override
+  final DateTime addedAt;
+
+  @override
+  String toString() {
+    return 'Member(userId: $userId, displayName: $displayName, role: $role, addedAt: $addedAt)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$MemberImpl &&
+            (identical(other.userId, userId) || other.userId == userId) &&
+            (identical(other.displayName, displayName) ||
+                other.displayName == displayName) &&
+            (identical(other.role, role) || other.role == role) &&
+            (identical(other.addedAt, addedAt) || other.addedAt == addedAt));
+  }
+
+  @JsonKey(ignore: true)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, userId, displayName, role, addedAt);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$MemberImplCopyWith<_$MemberImpl> get copyWith =>
+      __$$MemberImplCopyWithImpl<_$MemberImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$MemberImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _Member implements Member {
+  const factory _Member(
+      {required final String userId,
+      required final String displayName,
+      final String role,
+      required final DateTime addedAt}) = _$MemberImpl;
+
+  factory _Member.fromJson(Map<String, dynamic> json) = _$MemberImpl.fromJson;
+
+  @override
+  String get userId;
+  @override
+  String get displayName;
+  @override
+  String get role;
+  @override
+  DateTime get addedAt;
+  @override
+  @JsonKey(ignore: true)
+  _$$MemberImplCopyWith<_$MemberImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 

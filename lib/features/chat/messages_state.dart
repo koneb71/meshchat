@@ -47,6 +47,12 @@ class MessagesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
     _save();
   }
 
+  void removeById(String msgIdHex) {
+    final List<Map<String, dynamic>> next = state.where((Map<String, dynamic> m) => (m['id'] as String?)?.toLowerCase() != msgIdHex.toLowerCase()).toList();
+    state = next;
+    _save();
+  }
+
   Future<void> _load() async {
     final Map<String, dynamic> map = await _store.readJsonMap('messages.json');
     final List<dynamic>? list = map[channelKey] as List<dynamic>?;

@@ -34,6 +34,7 @@ class LinkService {
   final Set<DeviceIdentifier> _failed = <DeviceIdentifier>{};
   final StreamController<List<LinkInfo>> _linksController = StreamController<List<LinkInfo>>.broadcast();
   Stream<List<LinkInfo>> get linksStream => _linksController.stream;
+  final Set<DeviceIdentifier> _pinned = <DeviceIdentifier>{};
 
   LinkService({required this.scanner, required this.linkManager, this.maxConcurrent = 3});
 
@@ -60,6 +61,7 @@ class LinkService {
       if (_active.length >= maxConcurrent) break;
       if (_active.containsKey(d.remoteId)) continue;
       if (_failed.contains(d.remoteId)) continue;
+      if (_pinned.isNotEmpty && !_pinned.contains(d.remoteId)) continue;
       try {
         final MeshGattClientLink client = MeshGattClientLink(d);
         await client.connect(autoConnect: true);
@@ -92,6 +94,20 @@ class LinkService {
     // emit link info
     final List<LinkInfo> infos = _active.values.map((MeshGattClientLink l) => LinkInfo(id: l.id.str, mtu: l.mtu)).toList();
     _linksController.add(infos);
+  }
+
+  Future<bool> connectDevice(BluetoothDevice device) async {
+    try {
+      _pinned
+        ..clear()
+        ..add(device.remoteId);
+      await _maintain();
+      return _active.containsKey(device.remoteId);
+    } catch (_) {
+      return false;
+    } finally {
+      _pinned.clear();
+    }
   }
 }
 

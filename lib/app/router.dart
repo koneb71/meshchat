@@ -51,6 +51,16 @@ class _RootShellState extends ConsumerState<_RootShell> {
       ref.read(gattServerProvider).inboundFrames.listen((Uint8List bytes) {
         ref.read(linkManagerProvider).onFrameReceived(bytes);
       });
+      // Start Nearby Connections fallback
+      ref.read(nearbyProvider).start();
+      ref.read(nearbyProvider).inbound.listen((Uint8List bytes) {
+        ref.read(linkManagerProvider).onFrameReceivedNearby(bytes);
+      });
+      // Start iOS Multipeer fallback
+      ref.read(multipeerProvider).start(service: 'meshchat');
+      ref.read(multipeerProvider).inbound.listen((Uint8List bytes) {
+        ref.read(linkManagerProvider).onFrameReceivedNearby(bytes);
+      });
       ref.read(advertiserProvider).start();
       ref.read(linkServiceProvider).start();
       ref.read(channelsProvider.notifier).rotateDueKeys();

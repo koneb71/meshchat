@@ -39,6 +39,11 @@ android {
     }
 }
 
+// Suppress plugin Java warnings from third-party dependencies
+tasks.withType<JavaCompile>().configureEach {
+    options.compilerArgs.addAll(listOf("-Xlint:-options", "-Xlint:-deprecation"))
+}
+
 flutter {
     source = "../.."
 }

@@ -7,6 +7,8 @@ import '../chat/chat_page.dart';
 import 'invite_qr.dart';
 import '../dm/dm_page.dart';
 import '../../data/identity_provider.dart' as idp;
+import '../invite/inbox_page.dart';
+import 'channel_details_page.dart';
 
 class ChannelListPage extends ConsumerWidget {
   const ChannelListPage({super.key});
@@ -16,6 +18,11 @@ class ChannelListPage extends ConsumerWidget {
     final List channels = ref.watch(channelsProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Channels'), actions: <Widget>[
+        IconButton(
+          icon: const Icon(Icons.inbox),
+          tooltip: 'Invite Inbox',
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const InviteInboxPage())),
+        ),
         Consumer(builder: (BuildContext context, WidgetRef r, _) {
           final inv = r.watch(invitesEventsProvider);
           return inv.when(
@@ -114,108 +121,151 @@ class ChannelListPage extends ConsumerWidget {
       ]),
       body: ListView.builder(
         padding: const EdgeInsets.only(top: 8, bottom: 88),
-        itemCount: channels.length,
+        itemCount: (() {
+          final pinned = channels.where((c) => c.pinned).toList();
+          final others = channels.where((c) => !c.pinned).toList();
+          int count = 0;
+          if (pinned.isNotEmpty) count += 1 + pinned.length; // header + items
+          if (others.isNotEmpty) count += 1 + others.length;
+          return count;
+        })(),
         itemBuilder: (BuildContext c, int i) {
-          final ch = channels[i];
-          return Card(
-            child: ListTile(
-              title: Text(ch.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text(ch.encrypted ? 'Private' : 'Public'),
-              trailing: PopupMenuButton<String>(
-              onSelected: (String sel) async {
-                if (sel == 'qr') {
-                  final String bundle = ref.read(channelsProvider.notifier).generateInviteBundle(ch);
-                  // ignore: use_build_context_synchronously
-                  Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => InviteQrPage(bundle: bundle)));
-                } else if (sel == 'code') {
-                  final String code = ref.read(channelsProvider.notifier).generateInviteCode(ch);
-                  await showDialog<void>(
-                    context: context,
-                    builder: (_) => AlertDialog(
-                      title: const Text('Invite Code'),
-                      content: SelectableText(code),
-                      actions: <Widget>[TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
-                    ),
-                  );
-                } else if (sel == 'hash') {
-                  final String? hash = await ref.read(channelsProvider.notifier).senderKeyHash(ch);
-                  await showDialog<void>(
-                    context: context,
-                    builder: (_) => AlertDialog(
-                      title: const Text('Sender Key Hash (verify)'),
-                      content: SelectableText(hash ?? 'N/A'),
-                      actions: <Widget>[TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
-                    ),
-                  );
-                } else if (sel == 'rotate') {
-                    await ref.read(channelsProvider.notifier).rotateSenderKeyNow(ch.name);
-                    await ref.read(channelControlProvider).sendRekey(ch.name);
+          final pinned = channels.where((c) => c.pinned).toList();
+          final others = channels.where((c) => !c.pinned).toList();
+          final List<Object> items = <Object>[];
+          if (pinned.isNotEmpty) { items.add('__PINNED__'); items.addAll(pinned.cast<Object>()); }
+          if (others.isNotEmpty) { items.add('__ALL__'); items.addAll(others.cast<Object>()); }
+          final Object it = items[i];
+          if (it is String) {
+            final String title = it == '__PINNED__' ? 'Pinned' : 'All Channels';
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+              child: Text(title, style: Theme.of(context).textTheme.labelLarge),
+            );
+          }
+          final ch = it as dynamic;
+          return Dismissible(
+            key: ValueKey<String>(ch.name),
+            direction: DismissDirection.startToEnd,
+            onDismissed: (_) {
+              ref.read(channelsProvider.notifier).togglePinned(ch.name);
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ch.pinned ? 'Unpinned' : 'Pinned')));
+            },
+            background: Container(
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              child: Icon(Icons.push_pin, color: Theme.of(context).colorScheme.onSecondaryContainer),
+            ),
+            child: Card(
+              child: ListTile(
+                title: Row(children: <Widget>[
+                  Expanded(child: Text(ch.name, style: const TextStyle(fontWeight: FontWeight.w700))),
+                  if (ch.pinned) const Icon(Icons.push_pin, size: 18),
+                ]),
+                subtitle: Text(ch.encrypted ? 'Private' : 'Public'),
+                trailing: PopupMenuButton<String>(
+                onSelected: (String sel) async {
+                  if (sel == 'qr') {
+                    final String bundle = ref.read(channelsProvider.notifier).generateInviteBundle(ch);
                     // ignore: use_build_context_synchronously
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sender key rotated')));
-                } else if (sel == 'members') {
-                  showModalBottomSheet<void>(
-                    context: context,
-                    showDragHandle: true,
-                    isScrollControlled: true,
-                    builder: (BuildContext ctx) {
-                      return Consumer(builder: (BuildContext context, WidgetRef r, _) {
-                        final id = r.watch(idp.identityProvider);
-                        final peers = r.watch(nearbyPeersProvider);
-                        return SafeArea(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Text('Members: ${ch.name}', style: Theme.of(context).textTheme.titleMedium),
-                                const SizedBox(height: 12),
-                                if (id != null)
-                                  ListTile(
-                                    leading: const Icon(Icons.person),
-                                    title: Text(id.displayName.isNotEmpty ? id.displayName : 'You'),
-                                    subtitle: Text('Safety: ${id.safetyNumber}'),
-                                  ),
-                                peers.when(
-                                  data: (list) => Flexible(
-                                    child: ListView.builder(
-                                      shrinkWrap: true,
-                                      itemCount: list.length,
-                                      itemBuilder: (BuildContext _, int i) {
-                                        final d = list[i];
-                                        return ListTile(
-                                          leading: const Icon(Icons.devices_other),
-                                          title: Text(d.platformName.isNotEmpty ? d.platformName : 'Unknown device'),
-                                          subtitle: Text('ID: ${d.remoteId.str}'),
-                                        );
-                                      },
+                    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => InviteQrPage(bundle: bundle)));
+                  } else if (sel == 'code') {
+                    final String code = ref.read(channelsProvider.notifier).generateInviteCode(ch);
+                    await showDialog<void>(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text('Invite Code'),
+                        content: SelectableText(code),
+                        actions: <Widget>[TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+                      ),
+                    );
+                  } else if (sel == 'hash') {
+                    final String? hash = await ref.read(channelsProvider.notifier).senderKeyHash(ch);
+                    await showDialog<void>(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text('Sender Key Hash (verify)'),
+                        content: SelectableText(hash ?? 'N/A'),
+                        actions: <Widget>[TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+                      ),
+                    );
+                  } else if (sel == 'rotate') {
+                      await ref.read(channelsProvider.notifier).rotateSenderKeyNow(ch.name);
+                      await ref.read(channelControlProvider).sendRekey(ch.name);
+                      // ignore: use_build_context_synchronously
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sender key rotated')));
+                  } else if (sel == 'members') {
+                    showModalBottomSheet<void>(
+                      context: context,
+                      showDragHandle: true,
+                      isScrollControlled: true,
+                      builder: (BuildContext ctx) {
+                        return Consumer(builder: (BuildContext context, WidgetRef r, _) {
+                          final id = r.watch(idp.identityProvider);
+                          final peers = r.watch(nearbyPeersProvider);
+                          return SafeArea(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Text('Members: ${ch.name}', style: Theme.of(context).textTheme.titleMedium),
+                                  const SizedBox(height: 12),
+                                  if (id != null)
+                                    ListTile(
+                                      leading: const Icon(Icons.person),
+                                      title: Text(id.displayName.isNotEmpty ? id.displayName : 'You'),
+                                      subtitle: Text('Safety: ${id.safetyNumber}'),
                                     ),
+                                  peers.when(
+                                    data: (list) => Flexible(
+                                      child: ListView.builder(
+                                        shrinkWrap: true,
+                                        itemCount: list.length,
+                                        itemBuilder: (BuildContext _, int i) {
+                                          final d = list[i];
+                                          return ListTile(
+                                            leading: const Icon(Icons.devices_other),
+                                            title: Text(d.platformName.isNotEmpty ? d.platformName : 'Unknown device'),
+                                            subtitle: Text('ID: ${d.remoteId.str}'),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    loading: () => const Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator()),
+                                    error: (_, __) => const SizedBox.shrink(),
                                   ),
-                                  loading: () => const Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator()),
-                                  error: (_, __) => const SizedBox.shrink(),
-                                ),
-                                const SizedBox(height: 8),
-                                Text('This list shows nearby peers. Full membership sync is planned.', style: Theme.of(context).textTheme.bodySmall),
-                              ],
+                                  const SizedBox(height: 8),
+                                  Text('This list shows nearby peers. Full membership sync is planned.', style: Theme.of(context).textTheme.bodySmall),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      });
-                    },
-                  );
-                }
-              },
-              itemBuilder: (_) => <PopupMenuEntry<String>>[
-                const PopupMenuItem<String>(value: 'qr', child: Text('Show QR Invite')),
-                const PopupMenuItem<String>(value: 'code', child: Text('Show Invite Code')),
-                const PopupMenuItem<String>(value: 'hash', child: Text('Show Sender Key Hash')),
-                const PopupMenuItem<String>(value: 'rotate', child: Text('Rotate Sender Key Now')),
-                const PopupMenuItem<String>(value: 'members', child: Text('View Members')),
-              ],
+                          );
+                        });
+                      },
+                    );
+                  } else if (sel == 'details') {
+                    // ignore: use_build_context_synchronously
+                    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ChannelDetailsPage(channelName: ch.name)));
+                  } else if (sel == 'pin') {
+                    ref.read(channelsProvider.notifier).togglePinned(ch.name);
+                  }
+                },
+                itemBuilder: (_) => <PopupMenuEntry<String>>[
+                  const PopupMenuItem<String>(value: 'qr', child: Text('Show QR Invite')),
+                  const PopupMenuItem<String>(value: 'code', child: Text('Show Invite Code')),
+                  const PopupMenuItem<String>(value: 'hash', child: Text('Show Sender Key Hash')),
+                  const PopupMenuItem<String>(value: 'rotate', child: Text('Rotate Sender Key Now')),
+                  const PopupMenuItem<String>(value: 'members', child: Text('View Members')),
+                  const PopupMenuItem<String>(value: 'details', child: Text('Channel Details')),
+                  PopupMenuItem<String>(value: 'pin', child: Text(ch.pinned ? 'Unpin' : 'Pin')),
+                ],
+              ),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ChatPage(channelName: ch.name))),
             ),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ChatPage(channelName: ch.name))),
-            ),
-          );
+          ));
         },
       ),
       floatingActionButton: FloatingActionButton(

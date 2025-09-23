@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../data/identity_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class OnboardingPage extends ConsumerStatefulWidget {
   const OnboardingPage({super.key});
@@ -75,6 +76,25 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             ] else
               const Text('Set a display name to generate a safety number.'),
             const Spacer(),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Text('Quick Setup', style: TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 8),
+                    FutureBuilder<List<_CheckItem>>(
+                      future: _checks(),
+                      builder: (BuildContext _, AsyncSnapshot<List<_CheckItem>> snap) {
+                        final List<_CheckItem> items = snap.data ?? const <_CheckItem>[];
+                        return Column(children: items.map((e) => ListTile(leading: Icon(e.ok ? Icons.check_circle : Icons.error, color: e.ok ? Colors.green : Colors.orange), title: Text(e.title), trailing: e.action)).toList());
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
             Text(
               'Tip: Use Settings to edit later. Export/import identity coming next.',
               style: Theme.of(context).textTheme.bodySmall,
@@ -84,4 +104,26 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       ),
     );
   }
+}
+
+class _CheckItem {
+  final String title;
+  final bool ok;
+  final Widget? action;
+  const _CheckItem(this.title, this.ok, [this.action]);
+}
+
+Future<List<_CheckItem>> _checks() async {
+  final List<_CheckItem> list = <_CheckItem>[];
+  final bool btScan = await Permission.bluetoothScan.isGranted || (await Permission.bluetoothScan.request()).isGranted;
+  final bool btConn = await Permission.bluetoothConnect.isGranted || (await Permission.bluetoothConnect.request()).isGranted;
+  final bool btAdv = await Permission.bluetoothAdvertise.isGranted || (await Permission.bluetoothAdvertise.request()).isGranted;
+  final bool loc = await Permission.location.isGranted || (await Permission.location.request()).isGranted;
+  final bool ignoreBatt = await Permission.ignoreBatteryOptimizations.isGranted;
+  list.add(_CheckItem('Bluetooth Scan permission', btScan));
+  list.add(_CheckItem('Bluetooth Connect permission', btConn));
+  list.add(_CheckItem('Bluetooth Advertise permission', btAdv));
+  list.add(_CheckItem('Location permission (Android <12 or vendor‑required)', loc));
+  list.add(_CheckItem('Battery optimization disabled', ignoreBatt, TextButton(onPressed: () => Permission.ignoreBatteryOptimizations.request(), child: const Text('Allow'))));
+  return list;
 }

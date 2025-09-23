@@ -27,9 +27,23 @@ class Channel with _$Channel {
     @Default(0) int messageCounter,
     required DateTime createdAt,
     DateTime? rotatedAt,
+    @Default(<Member>[]) List<Member> members,
+    @Default(false) bool pinned,
   }) = _Channel;
 
   factory Channel.fromJson(Map<String, dynamic> json) => _$ChannelFromJson(json);
+}
+
+@freezed
+class Member with _$Member {
+  const factory Member({
+    required String userId,
+    required String displayName,
+    @Default('member') String role,
+    required DateTime addedAt,
+  }) = _Member;
+
+  factory Member.fromJson(Map<String, dynamic> json) => _$MemberFromJson(json);
 }
 
 @freezed

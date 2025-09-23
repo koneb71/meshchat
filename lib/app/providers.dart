@@ -6,7 +6,9 @@ import '../mesh/scanner.dart';
 import '../mesh/link_manager.dart';
 import '../mesh/link_service.dart';
 import '../mesh/link_info.dart';
+import '../mesh/nearby_service.dart';
 import '../mesh/gatt_server.dart';
+import '../mesh/multipeer_service.dart';
 import '../mesh/packet.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../mesh/constants.dart';
@@ -30,8 +32,16 @@ final Provider<LinkService> linkServiceProvider = Provider<LinkService>((Provide
   return LinkService(scanner: ref.read(scannerProvider), linkManager: ref.read(linkManagerProvider));
 });
 
+final Provider<NearbyMeshService> nearbyProvider = Provider<NearbyMeshService>((ProviderRef<NearbyMeshService> ref) {
+  return NearbyMeshService(serviceId: 'meshchat');
+});
+
 final Provider<MeshGattServer> gattServerProvider = Provider<MeshGattServer>((ProviderRef<MeshGattServer> ref) {
   return MeshGattServer();
+});
+
+final Provider<MultipeerMeshService> multipeerProvider = Provider<MultipeerMeshService>((ProviderRef<MultipeerMeshService> ref) {
+  return MultipeerMeshService();
 });
 
 final Provider<StreamController<MeshPacket>> messagesControllerProvider = Provider<StreamController<MeshPacket>>((ProviderRef<StreamController<MeshPacket>> ref) {
@@ -93,6 +103,16 @@ final StreamProvider<int> scanCountStreamProvider = StreamProvider<int>((StreamP
 
 final StreamProvider<List<LinkInfo>> linksStreamProvider = StreamProvider<List<LinkInfo>>((StreamProviderRef<List<LinkInfo>> ref) {
   return ref.read(linkServiceProvider).linksStream;
+});
+
+final StreamProvider<Map<String, int>> rssiMapProvider = StreamProvider<Map<String, int>>((StreamProviderRef<Map<String, int>> ref) {
+  return FlutterBluePlus.scanResults.map((List<ScanResult> results) {
+    final Map<String, int> m = <String, int>{};
+    for (final ScanResult r in results) {
+      m[r.device.remoteId.str] = r.rssi;
+    }
+    return m;
+  });
 });
 
 final Provider<ChannelControlService> channelControlProvider = Provider<ChannelControlService>((ProviderRef<ChannelControlService> ref) {

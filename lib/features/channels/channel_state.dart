@@ -24,6 +24,8 @@ class ChannelsNotifier extends StateNotifier<List<Channel>> {
       senderKey: null,
       messageCounter: 0,
       createdAt: DateTime.now(),
+      members: <Member>[],
+      pinned: false,
     );
     state = <Channel>[...state, ch];
     _save();
@@ -32,6 +34,30 @@ class ChannelsNotifier extends StateNotifier<List<Channel>> {
       // ignore: discarded_futures
       _ensureSenderKeyAsync(name);
     }
+  }
+
+  void togglePinned(String name) {
+    state = state.map((Channel c) => c.name == name ? c.copyWith(pinned: !c.pinned) : c).toList();
+    _save();
+  }
+
+  void addMember(String channelName, Member m) {
+    state = state.map((Channel c) => c.name == channelName ? c.copyWith(members: <Member>[...c.members, m]) : c).toList();
+    _save();
+  }
+
+  void removeMember(String channelName, String userId) {
+    state = state.map((Channel c) => c.name == channelName ? c.copyWith(members: c.members.where((Member x) => x.userId != userId).toList()) : c).toList();
+    _save();
+  }
+
+  void setRole(String channelName, String userId, String role) {
+    state = state.map((Channel c) {
+      if (c.name != channelName) return c;
+      final List<Member> next = c.members.map((Member x) => x.userId == userId ? x.copyWith(role: role) : x).toList();
+      return c.copyWith(members: next);
+    }).toList();
+    _save();
   }
 
   void joinPublicByName(String name) {

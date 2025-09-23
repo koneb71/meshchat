@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'dart:async';
+import 'package:flutter/services.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +24,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   int _counter = 0;
   List<Map<String, dynamic>> _messages = <Map<String, dynamic>>[];
   StreamSubscription? _sub;
+  String _transport = '';
 
   @override
   void dispose() {
@@ -36,7 +38,16 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     _ensureSubscribed();
     _messages = ref.watch(messagesProvider(widget.channelName));
     return Scaffold(
-      appBar: AppBar(title: Text(widget.channelName)),
+      appBar: AppBar(
+        title: Text(widget.channelName),
+        actions: <Widget>[
+          if (_transport.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Chip(label: Text(_transport), visualDensity: VisualDensity.compact),
+            ),
+        ],
+      ),
       body: Column(
         children: <Widget>[
           Consumer(builder: (BuildContext context, WidgetRef r, _) {
@@ -69,7 +80,22 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                 final DateTime? ts = tsMs != null ? DateTime.fromMillisecondsSinceEpoch(tsMs) : null;
                 return Align(
                   alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
+                  child: Dismissible(
+                    key: ValueKey<String>((m['id'] as String?) ?? '$i'),
+                    direction: mine ? DismissDirection.endToStart : DismissDirection.none,
+                    onDismissed: (_) {
+                      final String? id = m['id'] as String?;
+                      if (id != null) {
+                        ref.read(messagesProvider(widget.channelName).notifier).removeById(id);
+                      }
+                    },
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      child: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.onErrorContainer),
+                    ),
+                    child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
@@ -81,9 +107,40 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                       children: <Widget>[
                         Tooltip(
                           message: ts != null ? '${ts.hour.toString().padLeft(2, '0')}:${ts.minute.toString().padLeft(2, '0')}' : '',
-                          child: Text(
-                            text,
-                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                          child: GestureDetector(
+                            onLongPress: () async {
+                              await showModalBottomSheet<void>(
+                                context: context,
+                                builder: (_) => SafeArea(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      ListTile(
+                                        leading: const Icon(Icons.copy),
+                                        title: const Text('Copy'),
+                                        onTap: () async {
+                                          await Clipboard.setData(ClipboardData(text: text));
+                                          if (mounted) Navigator.pop(context);
+                                        },
+                                      ),
+                                      if (mine)
+                                        ListTile(
+                                          leading: const Icon(Icons.delete_outline),
+                                          title: const Text('Delete (local)'),
+                                          onTap: () {
+                                            setState(() => _messages.removeAt(i));
+                                            Navigator.pop(context);
+                                          },
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              text,
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                            ),
                           ),
                         ),
                         if (mine && deliv != null)
@@ -97,7 +154,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                       ],
                     ),
                   ),
-                );
+                ));
               },
             ),
           ),
@@ -122,6 +179,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
 
   void _ensureSubscribed() {
     if (_sub != null) return;
+    ref.read(linkManagerProvider).onTransport = (String t) { if (mounted) setState(() => _transport = t); };
     _sub = ref.read(messagesStreamProvider).listen((event) async {
       if (event.type == 3 && event.channelId64 == _hash64(widget.channelName)) {
         final channels = ref.read(channelsProvider);

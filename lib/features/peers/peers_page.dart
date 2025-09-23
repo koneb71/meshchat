@@ -35,6 +35,23 @@ class PeersPage extends ConsumerWidget {
               subtitle: Text(links.isEmpty ? 'None' : links.map((e) => '${e.id} (MTU ${e.mtu})').join('\n')),
             );
           }),
+          Consumer(builder: (BuildContext _, WidgetRef r, __) {
+            return StreamBuilder<Map<String, num>>(
+              stream: ref.read(linkManagerProvider).metricsStream,
+              builder: (BuildContext _, AsyncSnapshot<Map<String, num>> snap) {
+                final Map<String, num>? v = snap.data;
+                return ListTile(
+                  leading: const Icon(Icons.speed),
+                  title: const Text('Throughput / Loss'),
+                  subtitle: Text(v == null
+                      ? 'Measuring...'
+                      : 'In: ${v['kbpsIn']?.toStringAsFixed(1)} kbps  Out: ${v['kbpsOut']?.toStringAsFixed(1)} kbps\n' +
+                          'Recv: ${v['framesReceived']}  Sent: ${v['framesSent']}  Relayed: ${v['framesRelayed']}\n' +
+                          'Acks: ${v['acksReceived']} / ${v['acksSent']}  Duplicates: ${v['duplicatesDropped']}'),
+                );
+              },
+            );
+          }),
           FutureBuilder<Map<dynamic, dynamic>>(
             future: ref.read(gattServerProvider).capabilities(),
             builder: (BuildContext _, AsyncSnapshot<Map<dynamic, dynamic>> snap) {
@@ -70,13 +87,25 @@ class PeersPage extends ConsumerWidget {
           ),
           Expanded(child: peersAsync.when(
             data: (List<BluetoothDevice> peers) {
+              final rssiMap = ref.watch(rssiMapProvider).maybeWhen(data: (v) => v, orElse: () => const <String, int>{});
               return ListView.builder(
                 itemCount: peers.length,
                 itemBuilder: (BuildContext c, int i) {
                   final BluetoothDevice d = peers[i];
+                  final int? rssi = rssiMap[d.remoteId.str];
                   return ListTile(
                     title: Text(d.platformName.isNotEmpty ? d.platformName : d.remoteId.str),
-                    subtitle: Text(d.remoteId.str),
+                    subtitle: Text(rssi != null ? '${d.remoteId.str}  •  RSSI $rssi dBm' : d.remoteId.str),
+                    leading: IconButton(
+                      icon: const Icon(Icons.link),
+                      tooltip: 'Connect',
+                      onPressed: () async {
+                        final ok = await ref.read(linkServiceProvider).connectDevice(d);
+                        final snack = SnackBar(content: Text(ok ? 'Connected to ${d.remoteId.str}' : 'Connect failed'));
+                        // ignore: use_build_context_synchronously
+                        ScaffoldMessenger.of(context).showSnackBar(snack);
+                      },
+                    ),
                     trailing: PopupMenuButton<String>(
                       onSelected: (String sel) async {
                         if (sel == 'dm') {
