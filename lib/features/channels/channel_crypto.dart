@@ -30,9 +30,10 @@ class ChannelCryptoService {
     } else {
       key = SecretKey(base64Decode(kcBase64));
     }
-    // Nonce and counter update
-    final (int nextCounter, List<int> nonce12) = _nonceFromCounter(ch.messageCounter + 1);
-    notifier.updateChannelCounter(channelName, nextCounter);
+    // Nonce derived from msgId so sender/receiver match
+    final List<int> nonce12 = _nonceFromMsgId(headerPkt.msgId);
+    // Optionally bump local counter for diagnostics
+    notifier.updateChannelCounter(channelName, ch.messageCounter + 1);
     final Uint8List ad = _adFromHeader(headerPkt);
     final Uint8List cipher = await aeadSeal(key: key, nonce12: nonce12, plaintext: plaintext, ad: ad);
     return (cipher, nonce12);
